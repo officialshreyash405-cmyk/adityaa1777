@@ -1,544 +1,3275 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="UTF-8">
 
-  <title>Hand Detection Test</title>
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
-    crossorigin="anonymous">
-  </script>
+<title>Happy Birthday ✨</title>
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-    crossorigin="anonymous">
-  </script>
+<!-- =========================================================
+     MEDIAPIPE
+========================================================= -->
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
-    crossorigin="anonymous">
-  </script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
-  <style>
+<style>
 
-    * {
-      box-sizing: border-box;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #030106;
+}
+
+body {
+    font-family: Georgia, "Times New Roman", serif;
+}
+
+#app {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(
+            circle at center,
+            #1b0b27 0%,
+            #09030f 55%,
+            #020105 100%
+        );
+}
+
+#video {
+    display: none;
+}
+
+#canvas,
+#fxCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#canvas {
+    z-index: 1;
+}
+
+#fxCanvas {
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* =========================================================
+   TOP INSTRUCTION
+========================================================= */
+
+#instruction {
+    position: fixed;
+
+    top: 7%;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 10;
+
+    width: 92%;
+
+    text-align: center;
+
+    color: #ffeafa;
+
+    font-size:
+        clamp(16px, 2.2vw, 28px);
+
+    letter-spacing: .12em;
+
+    text-shadow:
+        0 0 8px #ff7edc,
+        0 0 25px #c65aff,
+        0 0 50px rgba(255,70,210,.4);
+
+    opacity: 0;
+
+    transition:
+        opacity 1s ease;
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+#status {
+
+    position: fixed;
+
+    left: 50%;
+    bottom: 25px;
+
+    transform: translateX(-50%);
+
+    z-index: 30;
+
+    padding:
+        8px 15px;
+
+    border-radius: 20px;
+
+    background:
+        rgba(0,0,0,.48);
+
+    backdrop-filter:
+        blur(8px);
+
+    font-family: Arial, sans-serif;
+
+    font-size: 10px;
+
+    letter-spacing: .08em;
+
+    color:
+        rgba(255,255,255,.55);
+
+    opacity: .75;
+
+    pointer-events: none;
+}
+
+/* =========================================================
+   BIRTHDAY
+========================================================= */
+
+#birthday {
+
+    position: fixed;
+
+    left: 50%;
+    top: 50%;
+
+    transform:
+        translate(-50%, -50%)
+        scale(.88);
+
+    z-index: 12;
+
+    text-align: center;
+
+    opacity: 0;
+
+    transition:
+        opacity 2.3s ease,
+        transform 2.3s
+        cubic-bezier(.2,.8,.2,1);
+
+    white-space: nowrap;
+}
+
+#birthday.visible {
+
+    opacity: 1;
+
+    transform:
+        translate(-50%, -50%)
+        scale(1);
+}
+
+#birthday .small {
+
+    display: block;
+
+    margin-bottom: 12px;
+
+    font-family: Arial, sans-serif;
+
+    font-size:
+        clamp(10px, 1.2vw, 15px);
+
+    letter-spacing: .5em;
+
+    text-transform: uppercase;
+
+    color:
+        rgba(255,225,247,.78);
+}
+
+#birthday .main {
+
+    display: block;
+
+    font-size:
+        clamp(45px, 9vw, 130px);
+
+    font-weight: normal;
+
+    font-style: italic;
+
+    color: #fff9fd;
+
+    text-shadow:
+
+        0 0 5px white,
+
+        0 0 15px #ff8ee7,
+
+        0 0 35px #d05bff,
+
+        0 0 70px rgba(255,60,210,.8),
+
+        0 0 120px rgba(160,70,255,.5);
+}
+
+#birthday .line {
+
+    width: 55%;
+
+    height: 1px;
+
+    margin:
+        20px auto 0;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            #ffd7f1,
+            transparent
+        );
+
+    box-shadow:
+        0 0 15px #ff7bdc;
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+#loading {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 100;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 22px;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #190924,
+            #050108 70%
+        );
+
+    transition:
+        opacity 1s ease,
+        visibility 1s ease;
+}
+
+#loading.hidden {
+
+    opacity: 0;
+
+    visibility: hidden;
+}
+
+.spinner {
+
+    width: 55px;
+    height: 55px;
+
+    border-radius: 50%;
+
+    border:
+        1px solid
+        rgba(255,200,240,.2);
+
+    border-top-color:
+        #ff7dd9;
+
+    border-right-color:
+        #b26aff;
+
+    box-shadow:
+        0 0 25px
+        rgba(255,80,220,.45);
+
+    animation:
+        spin 1s linear infinite;
+}
+
+#loadingText {
+
+    font-family: Arial, sans-serif;
+
+    font-size: 11px;
+
+    letter-spacing: .3em;
+
+    text-transform: uppercase;
+
+    text-align: center;
+
+    color:
+        rgba(255,225,246,.72);
+
+    padding: 0 20px;
+}
+
+@keyframes spin {
+
+    to {
+        transform: rotate(360deg);
     }
+}
 
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #050008;
-      font-family: Arial, sans-serif;
-    }
+/* =========================================================
+   ERROR
+========================================================= */
 
-    #camera {
-      position: fixed;
-      inset: 0;
+#error {
 
-      width: 100%;
-      height: 100%;
+    display: none;
 
-      object-fit: cover;
+    position: fixed;
 
-      transform: scaleX(-1);
+    left: 50%;
+    bottom: 10%;
 
-      display: none;
-    }
+    transform: translateX(-50%);
 
-    #canvas {
-      position: fixed;
-      inset: 0;
+    z-index: 200;
 
-      width: 100%;
-      height: 100%;
+    width: min(90%, 600px);
+
+    padding: 20px;
+
+    border-radius: 15px;
+
+    background:
+        rgba(20,3,25,.9);
+
+    border:
+        1px solid
+        rgba(255,100,210,.3);
+
+    color: #ffd8f3;
+
+    font-family: Arial, sans-serif;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    text-align: center;
+}
+
+@media(max-width:600px) {
+
+    #instruction {
+
+        top: 6%;
+
+        font-size: 16px;
+
+        letter-spacing: .07em;
     }
 
     #status {
 
-      position: fixed;
-
-      top: 25px;
-      left: 50%;
-
-      transform: translateX(-50%);
-
-      z-index: 10;
-
-      padding: 15px 25px;
-
-      border-radius: 30px;
-
-      background: rgba(0,0,0,.7);
-
-      color: white;
-
-      font-size: 16px;
-
-      text-align: center;
-
-      box-shadow:
-        0 0 25px rgba(255,80,220,.5);
+        bottom: 12px;
     }
 
-  </style>
+}
+
+</style>
 </head>
+
 
 <body>
 
-<video
-  id="camera"
-  autoplay
-  muted
-  playsinline>
-</video>
+<div id="app">
 
-<canvas id="canvas"></canvas>
+    <video
+        id="video"
+        autoplay
+        muted
+        playsinline>
+    </video>
 
-<div id="status">
-  Starting camera...
+    <canvas id="canvas"></canvas>
+
+    <canvas id="fxCanvas"></canvas>
+
+    <div id="instruction">
+        Raise your right hand to draw.
+    </div>
+
+    <div id="birthday">
+
+        <span class="small">
+            A little magic for you
+        </span>
+
+        <span class="main">
+            Happy Birthday
+        </span>
+
+        <div class="line"></div>
+
+    </div>
+
+    <div id="status">
+        Starting...
+    </div>
+
+    <div id="loading">
+
+        <div class="spinner"></div>
+
+        <div id="loadingText">
+            Awakening the magic...
+        </div>
+
+    </div>
+
+    <div id="error"></div>
+
 </div>
 
 
 <script>
 
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
 const video =
-  document.getElementById("camera");
+    document.getElementById("video");
 
 const canvas =
-  document.getElementById("canvas");
+    document.getElementById("canvas");
+
+const fxCanvas =
+    document.getElementById("fxCanvas");
 
 const ctx =
-  canvas.getContext("2d");
+    canvas.getContext("2d", {
+        alpha: false
+    });
+
+const fx =
+    fxCanvas.getContext("2d");
+
+const loading =
+    document.getElementById("loading");
+
+const loadingText =
+    document.getElementById("loadingText");
+
+const instruction =
+    document.getElementById("instruction");
+
+const birthday =
+    document.getElementById("birthday");
 
 const status =
-  document.getElementById("status");
+    document.getElementById("status");
+
+const errorBox =
+    document.getElementById("error");
 
 
-/* =====================================================
-   RESIZE
-===================================================== */
+/* =========================================================
+   SIZE
+========================================================= */
+
+let W = 0;
+let H = 0;
 
 function resize() {
 
-  canvas.width =
-    window.innerWidth;
+    W =
+        window.innerWidth;
 
-  canvas.height =
-    window.innerHeight;
+    H =
+        window.innerHeight;
+
+    canvas.width =
+        W;
+
+    canvas.height =
+        H;
+
+    fxCanvas.width =
+        W;
+
+    fxCanvas.height =
+        H;
 }
 
 resize();
 
 window.addEventListener(
-  "resize",
-  resize
+    "resize",
+    resize
 );
 
 
-/* =====================================================
-   MEDIAPIPE HANDS
-===================================================== */
+/* =========================================================
+   STATE MACHINE
+========================================================= */
 
-const hands =
-  new Hands({
+const STATE = {
 
-    locateFile: function(file) {
+    LOADING: "LOADING",
 
-      return (
-        "https://cdn.jsdelivr.net/npm/" +
-        "@mediapipe/hands/" +
-        file
-      );
+    DRAWING: "DRAWING",
 
-    }
+    BOUQUET: "BOUQUET",
 
-  });
+    DISPERSE: "DISPERSE",
 
+    REVEAL: "REVEAL"
 
-hands.setOptions({
+};
 
-  maxNumHands: 2,
+let currentState =
+    STATE.LOADING;
 
-  modelComplexity: 1,
 
-  minDetectionConfidence: 0.5,
-
-  minTrackingConfidence: 0.5
-
-});
-
-
-/* =====================================================
-   RESULTS
-===================================================== */
-
-hands.onResults(function(results) {
-
-  /*
-    Camera frame
-  */
-
-  ctx.clearRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
-  /*
-    Mirror camera.
-  */
-
-  ctx.save();
-
-  ctx.translate(
-    canvas.width,
-    0
-  );
-
-  ctx.scale(
-    -1,
-    1
-  );
-
-
-  ctx.drawImage(
-    results.image,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
-  ctx.restore();
-
-
-  /*
-    Dark overlay
-  */
-
-  ctx.fillStyle =
-    "rgba(5,0,12,.35)";
-
-  ctx.fillRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
-  /*
-    NO HAND
-  */
-
-  if (
-    !results.multiHandLandmarks ||
-    results.multiHandLandmarks.length === 0
-  ) {
-
-    status.innerHTML =
-      "🔍 No hand detected";
-
-    status.style.color =
-      "#ff9de7";
-
-    return;
-  }
-
-
-  /*
-    HAND FOUND
-  */
-
-  const count =
-    results.multiHandLandmarks.length;
-
-
-  status.innerHTML =
-    "✨ HAND DETECTED — " +
-    count +
-    " hand" +
-    (count > 1 ? "s" : "");
-
-
-  status.style.color =
-    "#9affd7";
-
-
-  /*
-    Draw every detected hand.
-  */
-
-  for (
-    let i = 0;
-    i <
-    results.multiHandLandmarks.length;
-    i++
-  ) {
-
-    const landmarks =
-      results.multiHandLandmarks[i];
-
-
-    /*
-      Draw connections.
-    */
-
-    ctx.save();
-
-    /*
-      Mirror coordinates so they
-      match the camera.
-    */
-
-    ctx.translate(
-      canvas.width,
-      0
-    );
-
-    ctx.scale(
-      -1,
-      1
-    );
-
-
-    drawConnectors(
-      ctx,
-      landmarks,
-      HAND_CONNECTIONS,
-      {
-        color: "#ff65dc",
-        lineWidth: 4
-      }
-    );
-
-
-    drawLandmarks(
-      ctx,
-      landmarks,
-      {
-        color: "#ffffff",
-        lineWidth: 2,
-        radius: 5
-      }
-    );
-
-
-    ctx.restore();
-
-
-    /*
-      Index fingertip = landmark 8
-    */
-
-    const tip =
-      landmarks[8];
-
-
-    const x =
-      (1 - tip.x) *
-      canvas.width;
-
-
-    const y =
-      tip.y *
-      canvas.height;
-
-
-    /*
-      Big fingertip indicator.
-    */
-
-    ctx.save();
-
-    ctx.beginPath();
-
-    ctx.arc(
-      x,
-      y,
-      18,
-      0,
-      Math.PI * 2
-    );
-
-
-    ctx.fillStyle =
-      "#ff4fd8";
-
-    ctx.shadowBlur =
-      35;
-
-    ctx.shadowColor =
-      "#ff4fd8";
-
-    ctx.fill();
-
-    ctx.restore();
-
-
-    /*
-      Handedness.
-    */
+function changeState(next) {
 
     if (
-      results.multiHandedness &&
-      results.multiHandedness[i]
+        currentState === next
+    ) {
+        return;
+    }
+
+    console.log(
+        "STATE:",
+        currentState,
+        "→",
+        next
+    );
+
+    currentState =
+        next;
+
+
+    if (
+        next === STATE.DRAWING
     ) {
 
-      const classification =
-        results
-          .multiHandedness[i]
-          .classification[0];
+        instruction.textContent =
+            "Raise your right hand to draw.";
 
+        instruction.style.opacity =
+            "1";
 
-      console.log(
-        "Hand:",
-        classification.label,
-        "confidence:",
-        classification.score
-      );
-
-
-      ctx.save();
-
-
-      ctx.font =
-        "bold 18px Arial";
-
-
-      ctx.fillStyle =
-        "#ffffff";
-
-
-      ctx.shadowBlur =
-        10;
-
-      ctx.shadowColor =
-        "#ff4fd8";
-
-
-      ctx.fillText(
-
-        classification.label,
-
-        x + 25,
-
-        y - 25
-
-      );
-
-
-      ctx.restore();
     }
-  }
-
-});
 
 
-/* =====================================================
-   CAMERA
-===================================================== */
+    if (
+        next === STATE.BOUQUET
+    ) {
 
-async function startCamera() {
+        instruction.textContent =
+            "Bring your other hand close.";
 
-  try {
-
-    status.innerHTML =
-      "📷 Requesting camera...";
-
-
-    const stream =
-      await navigator.mediaDevices
-        .getUserMedia({
-
-          video: {
-
-            facingMode: "user",
-
-            width: {
-              ideal: 1280
-            },
-
-            height: {
-              ideal: 720
-            }
-
-          },
-
-          audio: false
-
-        });
+        instruction.style.opacity =
+            "1";
+    }
 
 
-    video.srcObject =
-      stream;
+    if (
+        next === STATE.DISPERSE
+    ) {
+
+        instruction.style.opacity =
+            "0";
+    }
 
 
-    await video.play();
+    if (
+        next === STATE.REVEAL
+    ) {
 
+        instruction.style.opacity =
+            "0";
 
-    status.innerHTML =
-      "🧠 Starting hand tracking...";
-
-
-    /*
-      MediaPipe's recommended Camera
-      utility continuously sends frames.
-    */
-
-    const camera =
-      new Camera(
-
-        video,
-
-        {
-
-          onFrame:
-            async function() {
-
-              await hands.send({
-                image: video
-              });
-
-            },
-
-          width: 1280,
-
-          height: 720
-
-        }
-
-      );
-
-
-    camera.start();
-
-
-  }
-
-  catch(error) {
-
-    console.error(error);
-
-
-    status.innerHTML =
-      "❌ Camera error: " +
-      error.message;
-  }
+        birthday.classList.add(
+            "visible"
+        );
+    }
 
 }
 
 
-startCamera();
+/* =========================================================
+   MEDIAPIPE
+========================================================= */
+
+let hands = null;
+
+let faceMesh = null;
+
+let handsReady = false;
+
+let faceReady = false;
+
+
+/* =========================================================
+   DETECTED HANDS
+========================================================= */
+
+let rightHand = null;
+
+let leftHand = null;
+
+let latestFace = null;
+
+
+/* =========================================================
+   PROCESSING LOCK
+========================================================= */
+
+/*
+   VERY IMPORTANT.
+
+   Only one MediaPipe frame is allowed
+   to be processed at a time.
+
+   This prevents the browser from getting
+   flooded with pending hands.send() calls.
+*/
+
+let handProcessing =
+    false;
+
+let faceProcessing =
+    false;
+
+
+/* =========================================================
+   HAND RESULTS
+========================================================= */
+
+function handleHandResults(
+    results
+) {
+
+    rightHand = null;
+
+    leftHand = null;
+
+
+    const landmarks =
+        results.multiHandLandmarks;
+
+    const handedness =
+        results.multiHandedness;
+
+
+    if (
+        !landmarks ||
+        landmarks.length === 0
+    ) {
+
+        return;
+    }
+
+
+    for (
+        let i = 0;
+        i < landmarks.length;
+        i++
+    ) {
+
+        const hand =
+            landmarks[i];
+
+
+        let label = null;
+
+
+        if (
+            handedness &&
+            handedness[i] &&
+            handedness[i]
+                .classification &&
+            handedness[i]
+                .classification.length
+        ) {
+
+            label =
+                handedness[i]
+                    .classification[0]
+                    .label;
+        }
+
+
+        /*
+           MediaPipe handedness is
+           what we trust.
+
+           No geometry guessing.
+        */
+
+        if (
+            label === "Right"
+        ) {
+
+            rightHand =
+                hand;
+
+        }
+
+        else if (
+            label === "Left"
+        ) {
+
+            leftHand =
+                hand;
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   FACE RESULTS
+========================================================= */
+
+function handleFaceResults(
+    results
+) {
+
+    if (
+        results.multiFaceLandmarks &&
+        results.multiFaceLandmarks.length
+    ) {
+
+        latestFace =
+            results.multiFaceLandmarks[0];
+
+    }
+
+    else {
+
+        latestFace =
+            null;
+    }
+
+}
+
+
+/* =========================================================
+   INIT MEDIAPIPE
+========================================================= */
+
+async function initMediaPipe() {
+
+    loadingText.textContent =
+        "Loading hand tracking...";
+
+
+    hands =
+        new Hands({
+
+            locateFile:
+                function(file) {
+
+                    return (
+                        "https://cdn.jsdelivr.net/npm/" +
+                        "@mediapipe/hands/" +
+                        file
+                    );
+
+                }
+
+        });
+
+
+    hands.setOptions({
+
+        maxNumHands: 2,
+
+        modelComplexity: 1,
+
+        minDetectionConfidence: .45,
+
+        minTrackingConfidence: .45
+
+    });
+
+
+    hands.onResults(
+        handleHandResults
+    );
+
+
+    loadingText.textContent =
+        "Loading face tracking...";
+
+
+    faceMesh =
+        new FaceMesh({
+
+            locateFile:
+                function(file) {
+
+                    return (
+                        "https://cdn.jsdelivr.net/npm/" +
+                        "@mediapipe/face_mesh/" +
+                        file
+                    );
+
+                }
+
+        });
+
+
+    faceMesh.setOptions({
+
+        maxNumFaces: 1,
+
+        refineLandmarks: true,
+
+        minDetectionConfidence: .45,
+
+        minTrackingConfidence: .45
+
+    });
+
+
+    faceMesh.onResults(
+        handleFaceResults
+    );
+
+
+    handsReady =
+        true;
+
+    faceReady =
+        true;
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+async function startCamera() {
+
+    try {
+
+        loadingText.textContent =
+            "Opening your camera...";
+
+
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+
+            throw new Error(
+                "Your browser does not support webcam access."
+            );
+        }
+
+
+        const stream =
+            await navigator.mediaDevices
+                .getUserMedia({
+
+                    video: {
+
+                        facingMode: "user",
+
+                        width: {
+                            ideal: 1280
+                        },
+
+                        height: {
+                            ideal: 720
+                        }
+                    },
+
+                    audio: false
+
+                });
+
+
+        video.srcObject =
+            stream;
+
+
+        await new Promise(
+            function(resolve) {
+
+                if (
+                    video.readyState >= 1 &&
+                    video.videoWidth > 0
+                ) {
+
+                    resolve();
+
+                }
+
+                else {
+
+                    video.onloadedmetadata =
+                        resolve;
+                }
+
+            }
+        );
+
+
+        await video.play();
+
+
+        loadingText.textContent =
+            "Preparing the magic...";
+
+
+        await sleep(500);
+
+
+        loading.classList.add(
+            "hidden"
+        );
+
+
+        changeState(
+            STATE.DRAWING
+        );
+
+
+        status.textContent =
+            "Looking for your right hand...";
+
+
+        /*
+           Start our own controlled loop.
+        */
+
+        requestAnimationFrame(
+            trackingLoop
+        );
+
+
+        /*
+           Start visual loop separately.
+        */
+
+        requestAnimationFrame(
+            renderLoop
+        );
+
+
+    }
+
+    catch(error) {
+
+        console.error(
+            "Camera error:",
+            error
+        );
+
+
+        loadingText.textContent =
+            "Camera permission is required.";
+
+
+        errorBox.style.display =
+            "block";
+
+
+        errorBox.innerHTML =
+            "Please allow camera access and reload this page.<br><br>" +
+            "<small>" +
+            error.message +
+            "</small>";
+    }
+
+}
+
+
+/* =========================================================
+   SLEEP
+========================================================= */
+
+function sleep(ms) {
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                ms
+            )
+    );
+}
+
+
+/* =========================================================
+   TRACKING LOOP
+========================================================= */
+
+let lastHandFrame =
+    0;
+
+let lastFaceFrame =
+    0;
+
+
+async function trackingLoop(time) {
+
+    /*
+       HANDS
+    */
+
+    if (
+        handsReady &&
+        video.readyState >= 2 &&
+        !handProcessing &&
+        time - lastHandFrame > 45
+    ) {
+
+        lastHandFrame =
+            time;
+
+        handProcessing =
+            true;
+
+
+        try {
+
+            await hands.send({
+
+                image:
+                    video
+
+            });
+
+        }
+
+        catch(error) {
+
+            console.warn(
+                "Hand frame skipped:",
+                error
+            );
+
+        }
+
+        finally {
+
+            handProcessing =
+                false;
+        }
+    }
+
+
+    /*
+       FACE.
+
+       Only use it during reveal.
+    */
+
+    if (
+        currentState === STATE.REVEAL &&
+        faceReady &&
+        video.readyState >= 2 &&
+        !faceProcessing &&
+        time - lastFaceFrame > 70
+    ) {
+
+        lastFaceFrame =
+            time;
+
+        faceProcessing =
+            true;
+
+
+        try {
+
+            await faceMesh.send({
+
+                image:
+                    video
+
+            });
+
+        }
+
+        catch(error) {
+
+            console.warn(
+                "Face frame skipped:",
+                error
+            );
+
+        }
+
+        finally {
+
+            faceProcessing =
+                false;
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        trackingLoop
+    );
+}
+
+
+/* =========================================================
+   CAMERA RENDER
+========================================================= */
+
+function drawCamera() {
+
+    if (
+        video.readyState < 2 ||
+        !video.videoWidth
+    ) {
+
+        return;
+    }
+
+
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    const videoRatio =
+        video.videoWidth /
+        video.videoHeight;
+
+    const screenRatio =
+        W / H;
+
+
+    let dw;
+    let dh;
+    let dx;
+    let dy;
+
+
+    if (
+        videoRatio >
+        screenRatio
+    ) {
+
+        dh =
+            H;
+
+        dw =
+            H *
+            videoRatio;
+
+        dx =
+            (W - dw) / 2;
+
+        dy =
+            0;
+
+    }
+
+    else {
+
+        dw =
+            W;
+
+        dh =
+            W /
+            videoRatio;
+
+        dx =
+            0;
+
+        dy =
+            (H - dh) / 2;
+
+    }
+
+
+    /*
+       Mirror camera.
+    */
+
+    ctx.save();
+
+    ctx.translate(
+        W,
+        0
+    );
+
+    ctx.scale(
+        -1,
+        1
+    );
+
+
+    ctx.drawImage(
+
+        video,
+
+        dx,
+        dy,
+        dw,
+        dh
+
+    );
+
+
+    ctx.restore();
+
+
+    /*
+       Dark ethereal overlay.
+    */
+
+    const gradient =
+        ctx.createRadialGradient(
+
+            W / 2,
+            H / 2,
+            Math.min(W,H) * .08,
+
+            W / 2,
+            H / 2,
+            Math.max(W,H) * .75
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "rgba(10,2,18,.08)"
+    );
+
+
+    gradient.addColorStop(
+        .55,
+        "rgba(8,1,15,.27)"
+    );
+
+
+    gradient.addColorStop(
+        1,
+        "rgba(1,0,5,.72)"
+    );
+
+
+    ctx.fillStyle =
+        gradient;
+
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+}
+
+
+/* =========================================================
+   HAND STATUS
+========================================================= */
+
+function updateStatus() {
+
+    if (
+        currentState === STATE.REVEAL
+    ) {
+
+        status.textContent =
+            latestFace
+                ? "✨ Magic crown active"
+                : "✨ Birthday magic";
+
+        return;
+    }
+
+
+    if (
+        currentState === STATE.BOUQUET
+    ) {
+
+        if (
+            rightHand &&
+            leftHand
+        ) {
+
+            status.textContent =
+                "✨ Both hands detected";
+
+        }
+
+        else {
+
+            status.textContent =
+                "Bring your other hand close";
+        }
+
+        return;
+    }
+
+
+    if (
+        rightHand
+    ) {
+
+        status.textContent =
+            "✨ RIGHT HAND DETECTED";
+
+        status.style.color =
+            "#9affd7";
+
+    }
+
+    else {
+
+        status.textContent =
+            "Looking for your right hand...";
+
+        status.style.color =
+            "rgba(255,255,255,.55)";
+    }
+
+}
+
+
+/* =========================================================
+   DRAWING
+========================================================= */
+
+const trail = [];
+
+const MAX_TRAIL =
+    600;
+
+
+let smoothTip =
+    null;
+
+let drawingStart =
+    0;
+
+let lastTip =
+    null;
+
+let fingerMovement =
+    0;
+
+
+function updateDrawing() {
+
+    if (
+        !rightHand
+    ) {
+
+        return;
+    }
+
+
+    const landmark =
+        rightHand[8];
+
+
+    if (!landmark) {
+
+        return;
+    }
+
+
+    const target = {
+
+        x:
+            (1 - landmark.x) *
+            W,
+
+        y:
+            landmark.y *
+            H
+
+    };
+
+
+    /*
+       Smooth fingertip.
+    */
+
+    if (!smoothTip) {
+
+        smoothTip = {
+
+            x:
+                target.x,
+
+            y:
+                target.y
+
+        };
+
+    }
+
+    else {
+
+        smoothTip.x +=
+            (
+                target.x -
+                smoothTip.x
+            ) * .28;
+
+
+        smoothTip.y +=
+            (
+                target.y -
+                smoothTip.y
+            ) * .28;
+
+    }
+
+
+    if (!drawingStart) {
+
+        drawingStart =
+            performance.now();
+    }
+
+
+    /*
+       Count movement.
+    */
+
+    if (lastTip) {
+
+        const d =
+            Math.hypot(
+
+                smoothTip.x -
+                lastTip.x,
+
+                smoothTip.y -
+                lastTip.y
+
+            );
+
+
+        if (d > 1) {
+
+            fingerMovement +=
+                d;
+
+        }
+
+    }
+
+
+    lastTip = {
+
+        x:
+            smoothTip.x,
+
+        y:
+            smoothTip.y
+
+    };
+
+
+    trail.push({
+
+        x:
+            smoothTip.x,
+
+        y:
+            smoothTip.y,
+
+        time:
+            performance.now()
+
+    });
+
+
+    if (
+        trail.length >
+        MAX_TRAIL
+    ) {
+
+        trail.shift();
+
+    }
+
+}
+
+
+/* =========================================================
+   TRAIL RENDER
+========================================================= */
+
+function drawTrail() {
+
+    if (
+        trail.length < 2
+    ) {
+
+        return;
+    }
+
+
+    fx.save();
+
+
+    fx.lineCap =
+        "round";
+
+    fx.lineJoin =
+        "round";
+
+
+    /*
+       Large glow.
+    */
+
+    fx.shadowBlur =
+        35;
+
+    fx.shadowColor =
+        "#ff45d5";
+
+    fx.strokeStyle =
+        "rgba(255,80,220,.25)";
+
+    fx.lineWidth =
+        15;
+
+
+    fx.beginPath();
+
+
+    for (
+        let i = 0;
+        i < trail.length;
+        i++
+    ) {
+
+        const p =
+            trail[i];
+
+
+        if (
+            i === 0
+        ) {
+
+            fx.moveTo(
+                p.x,
+                p.y
+            );
+
+        }
+
+        else {
+
+            fx.lineTo(
+                p.x,
+                p.y
+            );
+        }
+
+    }
+
+
+    fx.stroke();
+
+
+    /*
+       Bright inner line.
+    */
+
+    fx.shadowBlur =
+        13;
+
+    fx.shadowColor =
+        "#ff8ee9";
+
+    fx.strokeStyle =
+        "#ffe8fa";
+
+    fx.lineWidth =
+        2.5;
+
+
+    fx.beginPath();
+
+
+    for (
+        let i = 0;
+        i < trail.length;
+        i++
+    ) {
+
+        const p =
+            trail[i];
+
+
+        if (
+            i === 0
+        ) {
+
+            fx.moveTo(
+                p.x,
+                p.y
+            );
+
+        }
+
+        else {
+
+            fx.lineTo(
+                p.x,
+                p.y
+            );
+        }
+
+    }
+
+
+    fx.stroke();
+
+
+    /*
+       Fingertip.
+    */
+
+    if (smoothTip) {
+
+        fx.shadowBlur =
+            30;
+
+        fx.shadowColor =
+            "#ff45d5";
+
+        fx.fillStyle =
+            "#ffffff";
+
+
+        fx.beginPath();
+
+        fx.arc(
+
+            smoothTip.x,
+
+            smoothTip.y,
+
+            4,
+
+            0,
+
+            Math.PI * 2
+
+        );
+
+        fx.fill();
+
+    }
+
+
+    fx.restore();
+
+}
+
+
+/* =========================================================
+   FLOWER CENTER
+========================================================= */
+
+let flowerCenter = {
+
+    x:
+        W / 2,
+
+    y:
+        H / 2
+};
+
+
+function calculateFlowerCenter() {
+
+    if (
+        trail.length === 0
+    ) {
+
+        return;
+    }
+
+
+    let x = 0;
+    let y = 0;
+
+
+    const start =
+        Math.max(
+            0,
+            trail.length - 180
+        );
+
+
+    for (
+        let i = start;
+        i < trail.length;
+        i++
+    ) {
+
+        x +=
+            trail[i].x;
+
+        y +=
+            trail[i].y;
+    }
+
+
+    const count =
+        trail.length -
+        start;
+
+
+    flowerCenter.x =
+        x / count;
+
+    flowerCenter.y =
+        y / count;
+}
+
+
+/* =========================================================
+   FLOWER
+========================================================= */
+
+function drawFlower(
+    cx,
+    cy,
+    scale,
+    rotation,
+    alpha
+) {
+
+    fx.save();
+
+
+    fx.translate(
+        cx,
+        cy
+    );
+
+
+    fx.rotate(
+        rotation
+    );
+
+
+    fx.globalAlpha =
+        alpha;
+
+
+    const petals =
+        7;
+
+
+    for (
+        let i = 0;
+        i < petals;
+        i++
+    ) {
+
+        fx.save();
+
+
+        fx.rotate(
+            Math.PI * 2 *
+            i /
+            petals
+        );
+
+
+        const g =
+            fx.createRadialGradient(
+
+                0,
+                -28 * scale,
+                2,
+
+                0,
+                -28 * scale,
+                40 * scale
+
+            );
+
+
+        g.addColorStop(
+            0,
+            "#fff8ff"
+        );
+
+
+        g.addColorStop(
+            .25,
+            "#ff9ce8"
+        );
+
+
+        g.addColorStop(
+            .7,
+            "#a95aff"
+        );
+
+
+        g.addColorStop(
+            1,
+            "rgba(90,30,180,0)"
+        );
+
+
+        fx.fillStyle =
+            g;
+
+
+        fx.shadowBlur =
+            28 * scale;
+
+        fx.shadowColor =
+            "#ff5ed8";
+
+
+        fx.beginPath();
+
+
+        fx.ellipse(
+
+            0,
+
+            -28 * scale,
+
+            16 * scale,
+
+            37 * scale,
+
+            0,
+
+            0,
+
+            Math.PI * 2
+
+        );
+
+
+        fx.fill();
+
+
+        fx.restore();
+
+    }
+
+
+    /*
+       Center.
+    */
+
+    const center =
+        fx.createRadialGradient(
+
+            0,
+            0,
+            1,
+
+            0,
+            0,
+            19 * scale
+
+        );
+
+
+    center.addColorStop(
+        0,
+        "#fffbd5"
+    );
+
+
+    center.addColorStop(
+        .35,
+        "#ffd56a"
+    );
+
+
+    center.addColorStop(
+        1,
+        "rgba(255,150,50,0)"
+    );
+
+
+    fx.fillStyle =
+        center;
+
+
+    fx.shadowBlur =
+        25 * scale;
+
+    fx.shadowColor =
+        "#ffd36e";
+
+
+    fx.beginPath();
+
+
+    fx.arc(
+
+        0,
+        0,
+        18 * scale,
+        0,
+        Math.PI * 2
+
+    );
+
+
+    fx.fill();
+
+
+    fx.restore();
+
+}
+
+
+/* =========================================================
+   BOUQUET
+========================================================= */
+
+let bouquet = [];
+
+let bouquetReady =
+    false;
+
+let gathered =
+    false;
+
+
+function createBouquet() {
+
+    bouquet = [
+
+        [-70,30,.72],
+
+        [-45,-18,.8],
+
+        [0,-48,.95],
+
+        [45,-18,.8],
+
+        [70,30,.72],
+
+        [-20,27,.82],
+
+        [22,27,.82]
+
+    ].map(
+        function(p) {
+
+            return {
+
+                x:
+                    p[0],
+
+                y:
+                    p[1],
+
+                scale:
+                    p[2],
+
+                phase:
+                    Math.random() *
+                    Math.PI * 2
+
+            };
+
+        }
+    );
+
+
+    bouquetReady =
+        true;
+}
+
+
+function handInfo() {
+
+    if (
+        !rightHand ||
+        !leftHand
+    ) {
+
+        return null;
+    }
+
+
+    function center(hand) {
+
+        let x = 0;
+        let y = 0;
+
+
+        for (
+            const p of hand
+        ) {
+
+            x +=
+                (1 - p.x) *
+                W;
+
+            y +=
+                p.y *
+                H;
+        }
+
+
+        return {
+
+            x:
+                x / hand.length,
+
+            y:
+                y / hand.length
+
+        };
+    }
+
+
+    const a =
+        center(rightHand);
+
+    const b =
+        center(leftHand);
+
+
+    return {
+
+        a,
+        b,
+
+        center: {
+
+            x:
+                (a.x + b.x) / 2,
+
+            y:
+                (a.y + b.y) / 2
+
+        },
+
+        distance:
+            Math.hypot(
+
+                a.x - b.x,
+
+                a.y - b.y
+
+            )
+
+    };
+
+}
+
+
+/* =========================================================
+   BOUQUET RENDER
+========================================================= */
+
+function drawBouquet(time) {
+
+    const info =
+        handInfo();
+
+
+    let cx =
+        W / 2;
+
+    let cy =
+        H / 2;
+
+
+    if (info) {
+
+        cx =
+            info.center.x;
+
+        cy =
+            info.center.y;
+
+    }
+
+
+    /*
+       Stems.
+    */
+
+    fx.save();
+
+
+    fx.translate(
+        cx,
+        cy
+    );
+
+
+    fx.strokeStyle =
+        "rgba(220,160,255,.6)";
+
+    fx.lineWidth =
+        2;
+
+    fx.shadowBlur =
+        12;
+
+    fx.shadowColor =
+        "#d87aff";
+
+
+    for (
+        const f of bouquet
+    ) {
+
+        fx.beginPath();
+
+        fx.moveTo(
+            0,
+            105
+        );
+
+        fx.quadraticCurveTo(
+
+            f.x * .4,
+
+            50,
+
+            f.x,
+
+            f.y + 15
+
+        );
+
+        fx.stroke();
+
+    }
+
+
+    fx.restore();
+
+
+    /*
+       Flowers.
+    */
+
+    for (
+        const f of bouquet
+    ) {
+
+        const bob =
+            Math.sin(
+                time * .0013 +
+                f.phase
+            ) * 4;
+
+
+        drawFlower(
+
+            cx + f.x,
+
+            cy + f.y + bob,
+
+            f.scale,
+
+            Math.sin(
+                time * .0005
+            ) * .05,
+
+            .95
+
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   BURST
+========================================================= */
+
+let previousDistance =
+    null;
+
+let lastBurst =
+    0;
+
+
+function checkGathering() {
+
+    const info =
+        handInfo();
+
+
+    if (!info) {
+
+        return false;
+    }
+
+
+    return (
+        info.distance <
+        Math.min(W,H) * .30
+    );
+
+}
+
+
+function checkBurst(time) {
+
+    const info =
+        handInfo();
+
+
+    if (!info) {
+
+        previousDistance =
+            null;
+
+        return false;
+    }
+
+
+    if (
+        previousDistance ===
+        null
+    ) {
+
+        previousDistance =
+            info.distance;
+
+        return false;
+    }
+
+
+    const change =
+        info.distance -
+        previousDistance;
+
+
+    previousDistance =
+        info.distance;
+
+
+    return (
+
+        gathered &&
+
+        change >
+            Math.min(W,H) *
+            .018 &&
+
+        info.distance >
+            Math.min(W,H) *
+            .35 &&
+
+        time -
+            lastBurst >
+            1000
+
+    );
+
+}
+
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+const particles = [];
+
+
+function createParticles() {
+
+    particles.length =
+        0;
+
+
+    const info =
+        handInfo();
+
+
+    const origin =
+        info
+            ? info.center
+            : flowerCenter;
+
+
+    const count =
+        Math.min(
+            550,
+            Math.max(
+                300,
+                Math.floor(
+                    W * H /
+                    3000
+                )
+            )
+        );
+
+
+    for (
+        let i = 0;
+        i < count;
+        i++
+    ) {
+
+        const angle =
+            Math.random() *
+            Math.PI *
+            2;
+
+
+        const speed =
+            2 +
+            Math.random() *
+            9;
+
+
+        particles.push({
+
+            x:
+                origin.x +
+                (
+                    Math.random() -
+                    .5
+                ) * 80,
+
+            y:
+                origin.y +
+                (
+                    Math.random() -
+                    .5
+                ) * 70,
+
+            vx:
+                Math.cos(angle) *
+                speed,
+
+            vy:
+                Math.sin(angle) *
+                speed -
+                Math.random() *
+                4,
+
+            size:
+                .7 +
+                Math.random() *
+                3.5,
+
+            life:
+                1,
+
+            decay:
+                .003 +
+                Math.random() *
+                .006,
+
+            gravity:
+                .025 +
+                Math.random() *
+                .07,
+
+            friction:
+                .985,
+
+            hue:
+                Math.random() *
+                360,
+
+            phase:
+                Math.random() *
+                Math.PI *
+                2
+
+        });
+
+    }
+
+}
+
+
+function updateParticles() {
+
+    let alive = 0;
+
+
+    for (
+        const p of particles
+    ) {
+
+        p.vx *=
+            p.friction;
+
+        p.vy *=
+            p.friction;
+
+        p.vy +=
+            p.gravity;
+
+        p.x +=
+            p.vx;
+
+        p.y +=
+            p.vy;
+
+        p.life -=
+            p.decay;
+
+
+        if (
+            p.life <= 0
+        ) {
+
+            continue;
+        }
+
+
+        alive++;
+
+
+        fx.save();
+
+
+        fx.globalAlpha =
+            p.life;
+
+
+        fx.fillStyle =
+            `hsla(${p.hue},100%,75%,1)`;
+
+
+        fx.shadowBlur =
+            15;
+
+        fx.shadowColor =
+            `hsla(${p.hue},100%,65%,1)`;
+
+
+        fx.beginPath();
+
+
+        fx.arc(
+
+            p.x,
+
+            p.y,
+
+            p.size,
+
+            0,
+
+            Math.PI * 2
+
+        );
+
+
+        fx.fill();
+
+
+        fx.restore();
+
+    }
+
+
+    return alive;
+
+}
+
+
+/* =========================================================
+   CROWN
+========================================================= */
+
+function getFacePoint(
+    index
+) {
+
+    if (
+        !latestFace ||
+        !latestFace[index]
+    ) {
+
+        return null;
+    }
+
+
+    const p =
+        latestFace[index];
+
+
+    return {
+
+        x:
+            (1 - p.x) *
+            W,
+
+        y:
+            p.y *
+            H
+
+    };
+
+}
+
+
+function drawCrown(time) {
+
+    if (!latestFace) {
+
+        return;
+    }
+
+
+    /*
+       Face Mesh landmarks.
+    */
+
+    const top =
+        getFacePoint(10);
+
+    const left =
+        getFacePoint(234);
+
+    const right =
+        getFacePoint(454);
+
+
+    if (
+        !top ||
+        !left ||
+        !right
+    ) {
+
+        return;
+    }
+
+
+    const cx =
+        (
+            left.x +
+            right.x
+        ) / 2;
+
+
+    const cy =
+        top.y -
+        Math.min(W,H) *
+        .06;
+
+
+    const width =
+        Math.max(
+
+            100,
+
+            Math.hypot(
+
+                right.x -
+                left.x,
+
+                right.y -
+                left.y
+
+            ) * .75
+
+        );
+
+
+    const rotation =
+        Math.atan2(
+
+            right.y -
+            left.y,
+
+            right.x -
+            left.x
+
+        );
+
+
+    fx.save();
+
+
+    fx.translate(
+        cx,
+        cy
+    );
+
+
+    fx.rotate(
+        rotation
+    );
+
+
+    /*
+       Golden garland.
+    */
+
+    fx.beginPath();
+
+
+    fx.moveTo(
+        -width * .55,
+        5
+    );
+
+
+    fx.quadraticCurveTo(
+
+        0,
+
+        width * .2,
+
+        width * .55,
+
+        5
+
+    );
+
+
+    fx.strokeStyle =
+        "rgba(255,211,113,.9)";
+
+
+    fx.lineWidth =
+        2;
+
+
+    fx.shadowBlur =
+        14;
+
+    fx.shadowColor =
+        "#ffd36e";
+
+
+    fx.stroke();
+
+
+    /*
+       Crown flowers.
+    */
+
+    for (
+        let i = 0;
+        i < 9;
+        i++
+    ) {
+
+        const t =
+            i / 8;
+
+
+        const x =
+            (
+                t - .5
+            ) *
+            width;
+
+
+        const y =
+            5 +
+            Math.sin(
+                t * Math.PI
+            ) *
+            width *
+            .19;
+
+
+        const bob =
+            Math.sin(
+                time * .002 +
+                i
+            ) * 2;
+
+
+        drawTinyFlower(
+
+            x,
+
+            y + bob,
+
+            .28,
+
+            time * .001 + i
+
+        );
+
+    }
+
+
+    fx.restore();
+
+}
+
+
+/* =========================================================
+   SMALL CROWN FLOWER
+========================================================= */
+
+function drawTinyFlower(
+    x,
+    y,
+    scale,
+    rotation
+) {
+
+    fx.save();
+
+
+    fx.translate(
+        x,
+        y
+    );
+
+
+    fx.rotate(
+        rotation
+    );
+
+
+    const colors = [
+
+        "#ff9de6",
+
+        "#d88aff",
+
+        "#ffd88c",
+
+        "#ffb4ee"
+
+    ];
+
+
+    const color =
+        colors[
+            Math.floor(
+                Math.abs(
+                    Math.sin(
+                        rotation
+                    )
+                ) *
+                colors.length
+            ) %
+            colors.length
+        ];
+
+
+    fx.shadowBlur =
+        13;
+
+    fx.shadowColor =
+        color;
+
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        fx.save();
+
+
+        fx.rotate(
+            i *
+            Math.PI *
+            2 /
+            5
+        );
+
+
+        fx.fillStyle =
+            color;
+
+
+        fx.beginPath();
+
+
+        fx.ellipse(
+
+            0,
+
+            -7 * scale,
+
+            4.5 * scale,
+
+            9 * scale,
+
+            0,
+
+            0,
+
+            Math.PI * 2
+
+        );
+
+
+        fx.fill();
+
+
+        fx.restore();
+
+    }
+
+
+    fx.fillStyle =
+        "#fff0a6";
+
+
+    fx.beginPath();
+
+
+    fx.arc(
+
+        0,
+        0,
+        3 * scale,
+        0,
+        Math.PI * 2
+
+    );
+
+
+    fx.fill();
+
+
+    fx.restore();
+
+}
+
+
+/* =========================================================
+   AMBIENT PARTICLES
+========================================================= */
+
+const ambient = [];
+
+
+for (
+    let i = 0;
+    i < 90;
+    i++
+) {
+
+    ambient.push({
+
+        x:
+            Math.random(),
+
+        y:
+            Math.random(),
+
+        size:
+            .5 +
+            Math.random() * 2,
+
+        speed:
+            .1 +
+            Math.random() * .4,
+
+        phase:
+            Math.random() *
+            Math.PI *
+            2
+
+    });
+
+}
+
+
+function drawAmbient(time) {
+
+    fx.save();
+
+
+    for (
+        const p of ambient
+    ) {
+
+        let y =
+            (
+                p.y * H -
+                time *
+                p.speed *
+                .02
+            ) % H;
+
+
+        if (
+            y < 0
+        ) {
+
+            y += H;
+        }
+
+
+        const alpha =
+            .25 +
+            .25 *
+            Math.sin(
+                time * .001 +
+                p.phase
+            );
+
+
+        fx.globalAlpha =
+            alpha;
+
+
+        fx.fillStyle =
+            "#ffd7f4";
+
+
+        fx.shadowBlur =
+            10;
+
+        fx.shadowColor =
+            "#ff72d8";
+
+
+        fx.beginPath();
+
+
+        fx.arc(
+
+            p.x * W,
+
+            y,
+
+            p.size,
+
+            0,
+
+            Math.PI * 2
+
+        );
+
+
+        fx.fill();
+
+    }
+
+
+    fx.restore();
+
+}
+
+
+/* =========================================================
+   VISUAL LOOP
+========================================================= */
+
+let lastVisualTime =
+    performance.now();
+
+
+function renderLoop(time) {
+
+    /*
+       CAMERA
+    */
+
+    drawCamera();
+
+
+    /*
+       CLEAR FX
+    */
+
+    fx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    /*
+       STATUS
+    */
+
+    updateStatus();
+
+
+    /* =====================================================
+       DRAWING
+    ===================================================== */
+
+    if (
+        currentState ===
+        STATE.DRAWING
+    ) {
+
+        if (
+            rightHand
+        ) {
+
+            updateDrawing();
+
+        }
+
+
+        drawTrail();
+
+
+        /*
+           Five seconds + actual movement.
+        */
+
+        if (
+            drawingStart &&
+            time -
+                drawingStart >
+                5000 &&
+            fingerMovement >
+                Math.min(W,H) *
+                .7 &&
+            trail.length > 50
+        ) {
+
+            calculateFlowerCenter();
+
+            changeState(
+                STATE.BOUQUET
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       BOUQUET
+    ===================================================== */
+
+    else if (
+        currentState ===
+        STATE.BOUQUET
+    ) {
+
+        drawTrail();
+
+
+        calculateFlowerCenter();
+
+
+        drawFlower(
+
+            flowerCenter.x,
+
+            flowerCenter.y,
+
+            .9,
+
+            Math.sin(
+                time * .0005
+            ) * .05,
+
+            .95
+
+        );
+
+
+        if (
+            checkGathering()
+        ) {
+
+            gathered =
+                true;
+
+
+            if (
+                !bouquetReady
+            ) {
+
+                createBouquet();
+
+            }
+
+
+            drawBouquet(
+                time
+            );
+
+
+            if (
+                checkBurst(time)
+            ) {
+
+                lastBurst =
+                    time;
+
+
+                changeState(
+                    STATE.DISPERSE
+                );
+
+
+                createParticles();
+
+            }
+
+        }
+
+        else if (
+            gathered &&
+            bouquetReady
+        ) {
+
+            drawBouquet(
+                time
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       DISPERSION
+    ===================================================== */
+
+    else if (
+        currentState ===
+        STATE.DISPERSE
+    ) {
+
+        const alive =
+            updateParticles();
+
+
+        if (
+            alive === 0 &&
+            particles.length > 0
+        ) {
+
+            changeState(
+                STATE.REVEAL
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       REVEAL
+    ===================================================== */
+
+    else if (
+        currentState ===
+        STATE.REVEAL
+    ) {
+
+        drawAmbient(
+            time
+        );
+
+
+        drawCrown(
+            time
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        renderLoop
+    );
+
+}
+
+
+/* =========================================================
+   BOOT
+========================================================= */
+
+async function boot() {
+
+    try {
+
+        loadingText.textContent =
+            "Loading the magic...";
+
+
+        await initMediaPipe();
+
+
+        await startCamera();
+
+    }
+
+    catch(error) {
+
+        console.error(
+            "BOOT ERROR:",
+            error
+        );
+
+
+        loadingText.textContent =
+            "Unable to start the magic.";
+
+        errorBox.style.display =
+            "block";
+
+        errorBox.textContent =
+            error.message;
+
+    }
+
+}
+
+
+boot();
 
 </script>
 
