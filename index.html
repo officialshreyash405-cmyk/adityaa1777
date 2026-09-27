@@ -140,6 +140,41 @@ canvas{
 
 #blowButton:active{transform:translateX(-50%) scale(.97)}
 
+#micBlowButton{
+  position:absolute;
+  left:50%;
+  bottom:max(62px,calc(env(safe-area-inset-bottom) + 48px));
+  transform:translateX(-50%);
+  z-index:20;
+  opacity:0;
+  pointer-events:none;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:999px;
+  padding:10px 20px;
+  color:rgba(255,255,255,.9);
+  background:rgba(18,10,32,.55);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+  font:600 11px system-ui,sans-serif;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:opacity .5s,transform .5s,border-color .25s,background .25s;
+}
+
+#micBlowButton.show{
+  opacity:1;
+  pointer-events:auto;
+}
+
+#micBlowButton.active{
+  border-color:rgba(255,157,224,.65);
+  background:rgba(55,20,65,.72);
+}
+
+#micBlowButton:active{transform:translateX(-50%) scale(.97)}
+
 #birthdayTitle{
   position:absolute;
   left:0;
@@ -220,6 +255,7 @@ canvas{
   #birthdayTitle h2{font-size:clamp(40px,11vw,78px)}
   #message{bottom:8%;font-size:14px}
   #blowButton{bottom:10px}
+  #micBlowButton{bottom:54px;padding:9px 15px;font-size:10px}
 }
 
 </style>
@@ -251,6 +287,7 @@ canvas{
 </div>
 
 <button id="blowButton">♡ Make a wish & blow ♡</button>
+<button id="micBlowButton" aria-label="Blow out candles using your microphone">🎙 Blow with microphone</button>
 
 <div id="start">
   <div class="startCard">
@@ -298,6 +335,7 @@ const message = document.getElementById("message");
 const start = document.getElementById("start");
 const startButton = document.getElementById("startButton");
 const blowButton = document.getElementById("blowButton");
+const micBlowButton = document.getElementById("micBlowButton");
 const errorBox = document.getElementById("error");
 
 
@@ -406,6 +444,17 @@ let cakeVisible=false;
 let audioContext=null;
 let masterGain=null;
 let musicStarted=false;
+
+/* Microphone candle-blow detection */
+let micStream=null;
+let micSource=null;
+let micAnalyser=null;
+let micData=null;
+let micDetecting=false;
+let micBaseline=0;
+let micStartTime=0;
+let micBlowFrames=0;
+let micAnimationFrame=0;
 
 
 /*
@@ -1313,6 +1362,7 @@ function enterWish(){
   setTimeout(()=>{
     cakeVisible = true;
     blowButton.classList.add("show");
+    micBlowButton.classList.add("show");
   },1300);
 }
 
@@ -2003,6 +2053,134 @@ function renderParty(now){
 
 
 /* ============================================================
+   MICROPHONE BLOW DETECTION
+============================================================ */
+
+function stopMicBlowDetection(){
+  micDetecting=false;
+
+  if(micAnimationFrame){
+    cancelAnimationFrame(micAnimationFrame);
+    micAnimationFrame=0;
+  }
+
+  if(micSource){
+    try{micSource.disconnect();}catch(e){}
+    micSource=null;
+  }
+
+  if(micAnalyser){
+    try{micAnalyser.disconnect();}catch(e){}
+    micAnalyser=null;
+  }
+
+  if(micStream){
+    micStream.getTracks().forEach(track=>track.stop());
+    micStream=null;
+  }
+
+  micData=null;
+  micBlowButton.classList.remove("active");
+}
+
+async function startMicBlowDetection(){
+  if(candlesBlown || state!==WISH || micDetecting)return;
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    micBlowButton.textContent="🎙 Mic unavailable — use button";
+    setTimeout(()=>{micBlowButton.textContent="🎙 Blow with microphone";},2200);
+    return;
+  }
+
+  try{
+    stopMicBlowDetection();
+
+    const stream=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true
+      }
+    });
+
+    if(candlesBlown || state!==WISH){
+      stream.getTracks().forEach(track=>track.stop());
+      return;
+    }
+
+    micStream=stream;
+    micAnalyser=audioContext?.createAnalyser() || null;
+
+    if(!micAnalyser){
+      micBlowButton.textContent="🎙 Mic unavailable — use button";
+      stream.getTracks().forEach(track=>track.stop());
+      micStream=null;
+      setTimeout(()=>{micBlowButton.textContent="🎙 Blow with microphone";},2200);
+      return;
+    }
+
+    micAnalyser.fftSize=1024;
+    micAnalyser.smoothingTimeConstant=.72;
+    micData=new Uint8Array(micAnalyser.fftSize);
+    micSource=audioContext.createMediaStreamSource(stream);
+    micSource.connect(micAnalyser);
+
+    micDetecting=true;
+    micBaseline=0;
+    micStartTime=performance.now();
+    micBlowFrames=0;
+    micBlowButton.classList.add("active");
+    micBlowButton.textContent="🎙 Listening… blow gently";
+
+    detectMicBlow();
+
+  }catch(err){
+    console.warn("Microphone permission/detection unavailable:",err);
+    stopMicBlowDetection();
+    micBlowButton.textContent="🎙 Mic unavailable — use button";
+    setTimeout(()=>{micBlowButton.textContent="🎙 Blow with microphone";},2600);
+  }
+}
+
+function detectMicBlow(){
+  if(!micDetecting || candlesBlown || !micAnalyser)return;
+
+  micAnalyser.getByteTimeDomainData(micData);
+
+  let sum=0;
+  for(let i=0;i<micData.length;i++){
+    const v=(micData[i]-128)/128;
+    sum+=v*v;
+  }
+
+  const rms=Math.sqrt(sum/micData.length);
+  const elapsed=performance.now()-micStartTime;
+
+  /* First ~450ms establishes the room/noise floor. */
+  if(elapsed<450){
+    micBaseline=micBaseline*.9+rms*.1;
+  }else{
+    const threshold=Math.max(.075,micBaseline*3.0+.035);
+
+    if(rms>threshold){
+      micBlowFrames++;
+    }else{
+      micBlowFrames=Math.max(0,micBlowFrames-1);
+    }
+
+    /* Require a short sustained burst so speech/taps are less likely to trigger it. */
+    if(micBlowFrames>=7){
+      stopMicBlowDetection();
+      blowCandles();
+      return;
+    }
+  }
+
+  micAnimationFrame=requestAnimationFrame(detectMicBlow);
+}
+
+
+/* ============================================================
    CANDLE BLOW
 ============================================================ */
 
@@ -2010,6 +2188,7 @@ function blowCandles(){
 
   if(candlesBlown)return;
 
+  stopMicBlowDetection();
   candlesBlown=true;
 
   blowButton.classList.remove("show");
@@ -2099,6 +2278,7 @@ function blowCandles(){
 
   if(candlesBlown)return;
 
+  stopMicBlowDetection();
   candlesBlown=true;
 
   blowButton.classList.remove("show");
@@ -2467,6 +2647,11 @@ startButton.addEventListener(
 blowButton.addEventListener(
   "click",
   blowCandles
+);
+
+micBlowButton.addEventListener(
+  "click",
+  startMicBlowDetection
 );
 
 
