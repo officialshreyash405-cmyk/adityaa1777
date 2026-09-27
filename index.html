@@ -142,8 +142,8 @@ canvas{
 
 #micBlowButton{
   position:absolute;
-  left:50%;
-  bottom:max(62px,calc(env(safe-area-inset-bottom) + 48px));
+  left:calc(50% - 118px);
+  bottom:max(14px,env(safe-area-inset-bottom));
   transform:translateX(-50%);
   z-index:20;
   opacity:0;
@@ -255,7 +255,7 @@ canvas{
   #birthdayTitle h2{font-size:clamp(40px,11vw,78px)}
   #message{bottom:8%;font-size:14px}
   #blowButton{bottom:10px}
-  #micBlowButton{bottom:54px;padding:9px 15px;font-size:10px}
+  #micBlowButton{left:calc(50% - 105px);bottom:max(10px,env(safe-area-inset-bottom));padding:9px 15px;font-size:10px}
 }
 
 </style>
