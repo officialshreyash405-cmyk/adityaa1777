@@ -166,7 +166,7 @@ canvas{
 
 #birthdayTitle h2{
   margin:10px 15px 0;
-  font-size:clamp(48px,12vw,105px);
+  font-size:clamp(42px,10vw,92px);
   line-height:.88;
   font-weight:400;
   background:linear-gradient(110deg,#fff,#ffc9ef 35%,#ffd978 68%,#fff);
@@ -187,7 +187,7 @@ canvas{
 #message{
   position:absolute;
   left:50%;
-  bottom:8%;
+  bottom:15%;
   transform:translateX(-50%);
   width:min(600px,calc(100% - 40px));
   font:400 clamp(15px,3.5vw,20px)/1.65 Georgia,serif;
@@ -218,7 +218,7 @@ canvas{
 @media (max-height:650px){
   #birthdayTitle{top:4%}
   #birthdayTitle h2{font-size:clamp(40px,11vw,78px)}
-  #message{bottom:4%;font-size:14px}
+  #message{bottom:12%;font-size:14px}
   #blowButton{bottom:18px}
 }
 
@@ -241,14 +241,11 @@ canvas{
 
   <div id="birthdayTitle">
     <div class="eyebrow">A little birthday wish</div>
-    <h2>Happy Birthday</h2>
-    <div class="name">For Ayushi ♡</div>
+    <h2>Happy Birthday Ayushi</h2>
   </div>
 
   <div id="message">
-    May your days be soft, your smile be endless,
-    and this new year of your life bring you
-    the sweetest little moments. ✨
+    Hope today gives you a few extra reasons to smile.<br>Have a really happy birthday, Ayushi. ♡
   </div>
 
 </div>
@@ -1138,7 +1135,7 @@ function prepareMorphTargets(){
   ctx.font = `800 ${size}px Georgia, serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("Happy Birthday",ow/2,oh/2);
+  ctx.fillText("Happy Birthday Ayushi",ow/2,oh/2);
 
   const px = ctx.getImageData(0,0,ow,oh).data;
   const pts = [];
@@ -1198,29 +1195,19 @@ function renderBurst(dt){
          burst particles into the words.
       */
 
-      const strength =
-        clamp(
-          (elapsed-morphStart)/900,
-          0,
-          1
-        );
+      const t = clamp((elapsed-morphStart)/1250,0,1);
+      const ease = t*t*(3-2*t);
 
-      p.x =
-        lerp(
-          p.x,
-          p.tx,
-          .018 + strength*.035
-        );
+      // Smoothly guide the actual flower particles into the letters.
+      // The easing removes the mechanical "snap" while keeping the
+      // particles clearly visible as the source of the greeting.
+      const follow = .045 + ease*.075;
 
-      p.y =
-        lerp(
-          p.y,
-          p.ty,
-          .018 + strength*.035
-        );
+      p.x += (p.tx-p.x) * follow;
+      p.y += (p.ty-p.y) * follow;
 
-      p.vx *= .92;
-      p.vy *= .92;
+      p.vx *= .84;
+      p.vy *= .84;
 
     }else{
 
@@ -1253,12 +1240,17 @@ function renderBurst(dt){
 
     }
 
+    const settledFade =
+      elapsed > morphStart + 1350
+        ? clamp(1-(elapsed-(morphStart+1350))/550,0,1)
+        : 1;
+
     fxCtx.fillStyle =
       `hsla(
         ${p.hue},
         100%,
         76%,
-        ${Math.max(.35,p.life)}
+        ${Math.max(.35,p.life)*settledFade}
       )`;
 
     fxCtx.beginPath();
@@ -1282,7 +1274,7 @@ function renderBurst(dt){
   */
 
   if(
-    elapsed > 3000
+    elapsed > 3200
   ){
 
     enterWish();
