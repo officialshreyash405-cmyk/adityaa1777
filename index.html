@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#120817">
-<title>A Little Birthday Surprise ♡</title>
+<title>Happy Birthday Ayushi ♡</title>
 
 <style>
 *{box-sizing:border-box}
@@ -242,7 +242,7 @@ canvas{
   <div id="birthdayTitle">
     <div class="eyebrow">A little birthday wish</div>
     <h2>Happy Birthday</h2>
-    <div class="name">Made with a little magic ♡</div>
+    <div class="name">For Ayushi ♡</div>
   </div>
 
   <div id="message">
@@ -1095,6 +1095,14 @@ function createBurst(){
       morph: false
     });
   }
+
+  const targetCount = Math.min(morphTargets.length, particles.length);
+  for(let i=0;i<targetCount;i++){
+    const t = morphTargets[Math.floor(i*morphTargets.length/targetCount)];
+    particles[i].tx = t.x;
+    particles[i].ty = t.y;
+  }
+
 }
 
 
@@ -1106,128 +1114,42 @@ let morphTargets = [];
 let morphPrepared = false;
 
 function prepareMorphTargets(){
-
   if(morphPrepared)return;
-
   morphPrepared = true;
 
-  const off =
-    document.createElement("canvas");
-
-  const ow =
-    Math.max(
-      420,
-      Math.floor(W*.86)
-    );
-
+  const off = document.createElement("canvas");
+  const ow = Math.max(420, Math.floor(W*.86));
   const oh = 150;
-
   off.width = ow;
   off.height = oh;
 
-  const ctx =
-    off.getContext("2d");
-
-  const fontSize =
-    Math.min(
-      82,
-      W*.14
-    );
-
+  const ctx = off.getContext("2d",{willReadFrequently:true});
+  const fontSize = Math.min(82, W*.14);
   ctx.fillStyle = "#fff";
-  ctx.font =
-    `700 ${fontSize}px Georgia`;
-
+  ctx.font = `700 ${fontSize}px Georgia`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.fillText("Happy Birthday",ow/2,oh/2);
 
-  ctx.fillText(
-    "Happy Birthday",
-    ow/2,
-    oh/2
-  );
-
-  const pixels =
-    ctx.getImageData(
-      0,
-      0,
-      ow,
-      oh
-    ).data;
-
+  const pixels = ctx.getImageData(0,0,ow,oh).data;
   const points = [];
 
   for(let y=0;y<oh;y+=5){
-
     for(let x=0;x<ow;x+=5){
-
-      const alpha =
-        pixels[(y*ow+x)*4+3];
-
-      if(alpha > 100){
-
+      if(pixels[(y*ow+x)*4+3] > 100){
         points.push({
-
-          x:
-            W/2 -
-            ow/2 +
-            x,
-
-          y:
-            H*.20 -
-            oh/2 +
-            y
-
+          x: W/2 - ow/2 + x,
+          y: H*.20 - oh/2 + y
         });
-
       }
     }
   }
 
-  /*
-     We have deliberately fewer targets than
-     pixels. This keeps mobile rendering light.
-  */
-
-  const targetCount =
-    Math.min(
-      points.length,
-      particles.length
-    );
-
-  for(let i=0;i<targetCount;i++){
-
-    const p =
-      points[
-        Math.floor(
-          i * points.length / targetCount
-        )
-      ];
-
-    morphTargets.push(p);
-  }
-
-  /*
-     Some particles remain free-floating
-     around the words for a magical dust effect.
-  */
-
-  for(let i=0;i<particles.length;i++){
-
-    if(i < morphTargets.length){
-
-      particles[i].tx =
-        morphTargets[i].x;
-
-      particles[i].ty =
-        morphTargets[i].y;
-
-      particles[i].morph = true;
-
-    }
-  }
+  morphTargets = points;
 }
 
+/* Precompute once, before the interactive burst. */
+prepareMorphTargets();
 
 /* ============================================================
    PARTICLE BURST / MORPH RENDER
@@ -1246,12 +1168,6 @@ function renderBurst(dt){
   */
 
   const morphStart = 1150;
-
-  if(elapsed > morphStart){
-
-    prepareMorphTargets();
-
-  }
 
   let alive = 0;
 
